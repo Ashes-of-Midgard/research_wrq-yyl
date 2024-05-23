@@ -133,3 +133,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Dataset
+data/
+
+# Running scripts
+train.bat
+
+# Output logs
+work_dirs/
