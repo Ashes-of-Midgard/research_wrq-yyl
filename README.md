@@ -21,10 +21,10 @@ conda activate deepir
 conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
 pip install openmim
 mim install mmcv-full
-mim install mmdet=2.25.2
-mim install mmsegmentation=0.29.1
+mim install mmdet==2.25.2
+mim install mmsegmentation==0.29.1
 
-pip install -r requirements
+pip install -r requirements.txt
 
 git clone https://github.com/Ashes-of-Midgard/research_wrq-yyl.git
 cd research_wrq-yyl

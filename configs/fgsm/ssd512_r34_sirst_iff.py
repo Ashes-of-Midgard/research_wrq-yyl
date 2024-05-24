@@ -77,7 +77,7 @@ elif sirst_version == 'sirstv2':
 else:
     raise ValueError("wrong sirst_version")
 dataset_type = 'SIRSTDet2NoCoDataset'
-data_root = 'data/sirst/'
+data_root = '/root/autodl-tmp/sirst/'
 img_norm_cfg = dict(
     mean=[111.89, 111.89, 111.89], std=[27.62, 27.62, 27.62], to_rgb=True)
 train_pipeline = [
@@ -124,7 +124,7 @@ data = dict(
         ann_file=data_root + 'splits/test_full.txt',
         img_prefix=data_root,
         pipeline=test_pipeline))
-evaluation = dict(interval=1, metric='mAP')
+# evaluation = dict(interval=1, metric='mAP')
 # optimizer
 optimizer = dict(type='SGD', lr=0.0003, momentum=0.9, weight_decay=5e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35,norm_type=2))
