@@ -1,10 +1,11 @@
-input_size = 512
 # model settings
+input_size = 512
 model = dict(
-    type='SingleStageDetectorSP',
-    pretrained="torchvision://resnet34",
+    type='SingleStageDetector',
     backbone=dict(
-        type='SSDR34SP',
+        type='SSDR34',
+        init_cfg=dict(type='Pretrained',
+                      checkpoint="torchvision://resnet34"),
         input_size=input_size,
         depth=34,
         num_stages=4,
@@ -16,7 +17,7 @@ model = dict(
         l2_norm_scale=20),
     neck=None,
     bbox_head=dict(
-        type='SSDHeadIFF',
+        type='SSDHead',
         in_channels=(256, 512, 512, 256, 256, 256, 256),
         # in_channels=(512, 512, 256, 256, 256, 256),
         anchor_generator=dict(
@@ -30,15 +31,13 @@ model = dict(
             #ratios=([2], [2, 3], [2, 3], [2, 3], [2], [2]),
             basesize_ratio_range=(0.15, 0.9)
             #basesize_ratio_range=(0.1, 0.9)
-            ),
+        ),
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
             clip_border=True,
             target_means=(.0, .0, .0, .0),
-            #target_means=[.0, .0, .0, .0],
-            target_stds=(0.1, 0.1, 0.2, 0.2)
-            #target_stds=[1.0, 1.0, 1.0, 1.0],
-            ),
+            target_stds=(0.1, 0.1, 0.2, 0.2),
+        ),
         num_classes=1))
 # model training and testing settings
 cudnn_benchmark = True
@@ -127,7 +126,7 @@ data = dict(
 # evaluation = dict(interval=1, metric='mAP')
 # optimizer
 optimizer = dict(type='SGD', lr=0.0003, momentum=0.9, weight_decay=5e-4)
-optimizer_config = dict(grad_clip=dict(max_norm=35,norm_type=2))
+optimizer_config = dict()
 # learning policy
 lr_config = dict(
     policy='step',
