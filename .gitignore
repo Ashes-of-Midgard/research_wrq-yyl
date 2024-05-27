@@ -136,6 +136,7 @@ dmypy.json
 
 # Dataset
 data/
+data
 
 # Running scripts
 train.bat

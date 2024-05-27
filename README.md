@@ -43,3 +43,11 @@ python tools/train_det.py \
     --gpu-id 0 \
     --work-dir work_dirs/ssd512_r34_sirst_iff
 ```
+
+baseline
+```shell
+python tools/train_det.py \
+    configs/fgsm/ssd512_r34_sirst.py \
+    --gpu-id 0 \
+    --work-dir work_dirs/ssd512_r34_sirst
+```
