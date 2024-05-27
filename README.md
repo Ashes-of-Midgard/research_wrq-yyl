@@ -37,6 +37,7 @@ The dataset can be downloaded [here](https://github.com/YimianDai/open-sirst-v2)
 
 
 ### Train
+iff
 ```shell
 python tools/train_det.py \
     configs/fgsm/ssd512_r34_sirst_iff.py \
@@ -51,3 +52,10 @@ python tools/train_det.py \
     --gpu-id 0 \
     --work-dir work_dirs/ssd512_r34_sirst
 ```
+
+### Result
+
+| Model | mNoCoAP |
+|---|---|
+| ssd512_r34_iff | 0.4679 |
+| ssd512_r34 | 0.1647 |
