@@ -76,7 +76,7 @@ elif sirst_version == 'sirstv2':
 else:
     raise ValueError("wrong sirst_version")
 dataset_type = 'SIRSTDet2NoCoDataset'
-data_root = './data/sirst/'
+data_root = './data/open-sirst-v2/'
 img_norm_cfg = dict(
     mean=[111.89, 111.89, 111.89], std=[27.62, 27.62, 27.62], to_rgb=True)
 train_pipeline = [

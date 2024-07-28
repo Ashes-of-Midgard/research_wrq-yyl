@@ -34,6 +34,12 @@ python setup.py develop
 ## 2. Getting Started
 ### Data
 The dataset can be downloaded [here](https://github.com/YimianDai/open-sirst-v2).
+```shell
+cd research_wrq-yyl
+mkdir data
+cd data
+git clone https://github.com/YimianDai/open-sirst-v2.git
+```
 
 
 ### Train
