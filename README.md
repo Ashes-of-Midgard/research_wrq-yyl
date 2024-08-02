@@ -43,25 +43,22 @@ git clone https://github.com/YimianDai/open-sirst-v2.git
 
 
 ### Train
-iff
+AAL+FGSM
 ```shell
-python tools/train_det.py \
-    configs/fgsm/ssd512_r34_sirst_iff.py \
-    --gpu-id 0 \
-    --work-dir work_dirs/ssd512_r34_sirst_iff
+python tools/train_det.py configs/aal/ssd512_r34_sirst_aal.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_aal
+```
+
+Selective Attack
+```shell
+python tools/train_det.py configs/aal/ssd512_r34_sirst_sa.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_sa
 ```
 
 baseline
 ```shell
-python tools/train_det.py \
-    configs/fgsm/ssd512_r34_sirst.py \
-    --gpu-id 0 \
-    --work-dir work_dirs/ssd512_r34_sirst
+python tools/train_det.py configs/aal/ssd512_r34_sirst_base.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_base
 ```
 
 ### Result
 
 | Model | mNoCoAP |
 |---|---|
-| ssd512_r34_iff | 0.4679 |
-| ssd512_r34 | 0.1647 |
