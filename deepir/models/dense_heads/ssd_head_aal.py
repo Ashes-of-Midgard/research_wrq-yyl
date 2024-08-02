@@ -452,6 +452,8 @@ class SSDHeadAAL(AnchorHead):
                 one = torch.ones_like(backtrack_masks[i])
                 backtrack_sp_attn = (one - 0.05 * backtrack_masks[i]) * sp_attns[i]
                 backtracked_sp_attns.append(backtrack_sp_attn)
+            else:
+                backtracked_sp_attns.append(None)
         # Phase 7: Add adversarial perturbations to the input feats with guidence of spatial attentions
         adv_feats = []
         for i in range(len(ori_feats)):
@@ -474,7 +476,7 @@ class SSDHeadAAL(AnchorHead):
                 *outs, img_metas=img_metas, cfg=proposal_cfg)
             return losses, proposal_list
 
-    def simple_test(self, feats, sp, img_metas, rescale=False):
+    def simple_test(self, feats, img_metas, rescale=False):
         """!MODIFIED: This method has been modified from the same method
         in BaseDenseHead in mmdetection-2.25.2. Now the head expects to
         receive two inputs from FPN, feats and sp, rather than just one
@@ -496,9 +498,9 @@ class SSDHeadAAL(AnchorHead):
                 The shape of the second tensor in the tuple is ``labels``
                 with shape (n, ).
         """
-        return self.simple_test_bboxes(feats, sp, img_metas, rescale=rescale)
+        return self.simple_test_bboxes(feats, img_metas, rescale=rescale)
     
-    def simple_test_bboxes(self, feats, sp, img_metas, rescale=False):
+    def simple_test_bboxes(self, feats, img_metas, rescale=False):
         """!MODIFIED: This method has been modified from the same method
         in BaseDenseHead in mmdetection-2.25.2. Now the head expects to
         receive two inputs from FPN, feats and sp, rather than just one

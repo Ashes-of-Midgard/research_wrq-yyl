@@ -412,7 +412,7 @@ class SSDHeadSA(AnchorHead):
                 *outs, img_metas=img_metas, cfg=proposal_cfg)
             return losses, proposal_list
 
-    def simple_test(self, feats, sp, img_metas, rescale=False):
+    def simple_test(self, feats, img_metas, rescale=False):
         """!MODIFIED: This method has been modified from the same method
         in BaseDenseHead in mmdetection-2.25.2. Now the head expects to
         receive two inputs from FPN, feats and sp, rather than just one
@@ -434,9 +434,9 @@ class SSDHeadSA(AnchorHead):
                 The shape of the second tensor in the tuple is ``labels``
                 with shape (n, ).
         """
-        return self.simple_test_bboxes(feats, sp, img_metas, rescale=rescale)
+        return self.simple_test_bboxes(feats, img_metas, rescale=rescale)
     
-    def simple_test_bboxes(self, feats, sp, img_metas, rescale=False):
+    def simple_test_bboxes(self, feats, img_metas, rescale=False):
         """!MODIFIED: This method has been modified from the same method
         in BaseDenseHead in mmdetection-2.25.2. Now the head expects to
         receive two inputs from FPN, feats and sp, rather than just one

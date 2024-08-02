@@ -82,17 +82,14 @@ class BasicBlockSP(BaseModule):
         """Forward function."""
 
         def _inner_forward(x):
-            print('block1:',x.shape)
             identity = x
 
             out = self.conv1(x)
             out = self.norm1(out)
             out = self.relu(out)
-            print('block2:',out.shape)
 
             out = self.conv2(out)
             out = self.norm2(out)
-            print('block3:',out.shape)
 
             ### SP MODIFIED ###
             if self.use_sp_attn:
@@ -101,7 +98,6 @@ class BasicBlockSP(BaseModule):
             ### END MODIFIED ###
 
             if self.downsample is not None:
-                print('block4:',x.shape)
                 identity = self.downsample(x)
 
             out += identity
@@ -732,13 +728,9 @@ class ResNetSP(BaseModule):
             x = self.stem(x)
         else:
             x = self.conv1(x)
-            print('1:',x.shape)
             x = self.norm1(x)
-            print('2:',x.shape)
             x = self.relu(x)
-            print('3:',x.shape)
         x = self.maxpool(x)
-        print('4:',x.shape)
         outs = []
         ### SP MODIFIED ###
         sp_attn_outs = []
@@ -755,7 +747,6 @@ class ResNetSP(BaseModule):
                 outs.append(x)
                 sp_attn_outs.append(sp_attn)
             ### END MODIFIED ###
-            print('5:',x.shape)
         ### SP MODIFIED ###
         return tuple(outs), tuple(sp_attn_outs)
         ### END MODIFIED ###
@@ -862,8 +853,7 @@ class ResLayerSP(Sequential):
                 block(
                     inplanes=inplanes,
                     planes=planes,
-                    stride=stride,
-                    downsample=downsample,
+                    stride=1,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
                     use_sp_attn = self.use_sp_attn,

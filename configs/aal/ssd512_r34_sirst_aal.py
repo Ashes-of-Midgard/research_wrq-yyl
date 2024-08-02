@@ -6,6 +6,7 @@ model = dict(
         type='ResNet34SP_ExtraLayers',
         #depth=34,
         input_size=input_size,
+        strides=(1, 2, 2, 1),
         out_indices=(2, 3),
         frozen_stages=1,
         use_sp_attn_indices=(2, 3),
@@ -15,29 +16,20 @@ model = dict(
     bbox_head=dict(
         type='SSDHeadAAL',
         in_channels=(256, 512, 512, 256, 256, 256, 256),
-        # in_channels=(512, 512, 256, 256, 256, 256),
         anchor_generator=dict(
             type='SSDAnchorGenerator',
             scale_major=False,
             input_size=input_size,
-            #input_size=300,
             strides=(16, 16, 32, 64, 128, 256, 512),
-            #strides=[8, 16, 32, 64, 100, 300],
             ratios=([2], [2, 3], [2, 3], [2, 3], [2, 3], [2], [2]),
-            #ratios=([2], [2, 3], [2, 3], [2, 3], [2], [2]),
-            basesize_ratio_range=(0.15, 0.9)
-            #basesize_ratio_range=(0.1, 0.9)
-            ),
+            basesize_ratio_range=(0.15, 0.9)),
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
             clip_border=True,
             target_means=(.0, .0, .0, .0),
-            #target_means=[.0, .0, .0, .0],
-            target_stds=(0.1, 0.1, 0.2, 0.2)
-            #target_stds=[1.0, 1.0, 1.0, 1.0],
-            ),
+            target_stds=(0.1, 0.1, 0.2, 0.2)),
         num_classes=1))
-# model training and testing settings
+############ model training and testing settings ###################
 cudnn_benchmark = True
 train_cfg = dict(
     assigner=dict(
@@ -57,7 +49,7 @@ test_cfg = dict(
     min_bbox_size=0,
     score_thr=0.02,
     max_per_img=200)
-# dataset setting
+######################## dataset setting #######################
 sirst_version = 'sirstv2' # 'sirstv1' or 'sirstv2'
 if sirst_version == 'sirstv1':
     split_cfg = {
@@ -83,21 +75,18 @@ train_pipeline = [
     dict(type='Resize', img_scale=(input_size, input_size), keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
-    #dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels'])]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        # img_scale=(1333, 800),
         img_scale=(input_size, input_size),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=False),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
-            #dict(type='Pad', size_divisor=32),
             dict(type='ImageToTensor', keys=['img']),
             dict(type='Collect', keys=['img'])])]
 data = dict(
@@ -122,10 +111,9 @@ data = dict(
         img_prefix=data_root,
         pipeline=test_pipeline))
 # evaluation = dict(interval=1, metric='mAP')
-# optimizer
+########################## learning policy ###################################
 optimizer = dict(type='SGD', lr=0.0003, momentum=0.9, weight_decay=5e-4)
 optimizer_config = dict(grad_clip=dict(max_norm=35,norm_type=2))
-# learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
@@ -133,15 +121,11 @@ lr_config = dict(
     warmup_ratio=1.0 / 10,
     step=[16, 20])
 checkpoint_config = dict(interval=1)
-# yapf:disable
 log_config = dict(
     interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
-        # dict(type='TensorboardLoggerHook')
     ])
-# yapf:enable
-# runtime settings
 total_epochs = 24
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
