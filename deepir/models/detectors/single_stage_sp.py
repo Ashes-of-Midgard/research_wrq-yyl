@@ -5,14 +5,12 @@ import torch
 
 from mmdet.core import bbox2result
 from mmdet.models.builder import DETECTORS, build_backbone, build_head, build_neck
-from mmdet.models.detectors import BaseDetector
+from mmdet.models.detectors.base import BaseDetector
 
 
 @DETECTORS.register_module()
 class SingleStageDetectorSP(BaseDetector):
-    """A modified version of SingleStageDetector in mmdetection-2.25.2.
-    Now the backbone outputs two items, x and sp. And the bbox head
-    receives two inputs also.
+    """Base class for single-stage detectors.
 
     Single-stage detectors directly and densely predict bounding boxes on the
     output features of the backbone+neck.
@@ -27,13 +25,11 @@ class SingleStageDetectorSP(BaseDetector):
                  pretrained=None,
                  init_cfg=None):
         super(SingleStageDetectorSP, self).__init__(init_cfg)
-        self.backbone = build_backbone(backbone)
-        ##### SP MODIFIED  #####
         if pretrained:
             warnings.warn('DeprecationWarning: pretrained is deprecated, '
                           'please use "init_cfg" instead')
-            self.backbone.init_weights(pretrained=pretrained)
-        ##### END MODIFIED #####
+            backbone.pretrained = pretrained
+        self.backbone = build_backbone(backbone)
         if neck is not None:
             self.neck = build_neck(neck)
         bbox_head.update(train_cfg=train_cfg)
@@ -43,31 +39,24 @@ class SingleStageDetectorSP(BaseDetector):
         self.test_cfg = test_cfg
 
     def extract_feat(self, img):
-        """!MODIFIED: This method has been modified from the same method of SingleStageDetector
-        in mmdetection-2.25.2. The backbone now returns two outputs, x and sp. And this method
-        also returns x and sp. 
-        
-        Directly extract features from the backbone+neck.
-        """
-        ##### SP MODIFIED  #####
-        x,sp = self.backbone(img)
+        """Directly extract features from the backbone+neck."""
+        ### SP MODIFIED ###
+        x, sp_attn = self.backbone(img)
         if self.with_neck:
-            x = self.neck(x)
-        return x,sp
-        ##### END MODIFIED #####
+            x, sp_attn = self.neck(x)
+        return x, sp_attn
+        ### END MODIFIED ###
 
     def forward_dummy(self, img):
-        """!MODIFIED: This method has been modified from the same method of SingleStageDetector
-        in mmdetection-2.25.2. The backbone now returns two outputs, x and sp.
-
-        Used for computing network flops.
+        """Used for computing network flops.
 
         See `mmdetection/tools/analysis_tools/get_flops.py`
         """
-        ##### SP MODIFIED  #####
-        x,sp = self.extract_feat(img)
-        outs = self.bbox_head(x,sp)
-        ##### END MODIFIED #####
+        ### SP MODIFIED ###
+        x, _ = self.extract_feat(img)
+        ### END MODIFIED ###
+        outs = self.bbox_head(x)
+        
         return outs
 
     def forward_train(self,
@@ -76,10 +65,7 @@ class SingleStageDetectorSP(BaseDetector):
                       gt_bboxes,
                       gt_labels,
                       gt_bboxes_ignore=None):
-        """!MODIFIED: This method has been modified from the same method of SingleStageDetector
-        in mmdetection-2.25.2. The backbone now returns two outputs, x and sp. And the bbox head
-        also receives two inputs.
-
+        """
         Args:
             img (Tensor): Input images of shape (N, C, H, W).
                 Typically these should be mean centered and std scaled.
@@ -98,19 +84,15 @@ class SingleStageDetectorSP(BaseDetector):
             dict[str, Tensor]: A dictionary of loss components.
         """
         super(SingleStageDetectorSP, self).forward_train(img, img_metas)
-        ##### SP MODIFIED  #####
-        x,sp = self.extract_feat(img)
-        losses = self.bbox_head.forward_train(x, sp, img_metas, gt_bboxes,
+        ### SP MODIFIED ###
+        x, sp_attn = self.extract_feat(img)
+        losses = self.bbox_head.forward_train(x, sp_attn, img_metas, gt_bboxes,
                                               gt_labels, gt_bboxes_ignore)
-        ##### END MODIFIED #####
+        ### SP MODIFIED ###
         return losses
 
     def simple_test(self, img, img_metas, rescale=False):
-        """!MODIFIED: This method has been modified from the same method of SingleStageDetector
-        in mmdetection-2.25.2. The backbone now returns two outputs, feat and sp. And the bbox head
-        also receives two inputs.
-        
-        Test function without test-time augmentation.
+        """Test function without test-time augmentation.
 
         Args:
             img (torch.Tensor): Images with shape (N, C, H, W).
@@ -123,11 +105,11 @@ class SingleStageDetectorSP(BaseDetector):
                 The outer list corresponds to each image. The inner list
                 corresponds to each class.
         """
-        ##### SP MODIFIED  #####
-        feat, sp = self.extract_feat(img)
+        ### SP MODIFIED ###
+        feat, _ = self.extract_feat(img)
+        ### END MODIFIED ###
         results_list = self.bbox_head.simple_test(
-            feat, sp, img_metas, rescale=rescale)
-        ##### END MODIFIED #####
+            feat, img_metas, rescale=rescale)
         bbox_results = [
             bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
             for det_bboxes, det_labels in results_list
@@ -156,7 +138,9 @@ class SingleStageDetectorSP(BaseDetector):
             f'{self.bbox_head.__class__.__name__}' \
             ' does not support test-time augmentation'
 
-        feats = self.extract_feats(imgs)
+        ### SP MODIFIED ###
+        feats, _ = self.extract_feats(imgs)
+        ### END MODIFIED ###
         results_list = self.bbox_head.aug_test(
             feats, img_metas, rescale=rescale)
         bbox_results = [
@@ -176,7 +160,9 @@ class SingleStageDetectorSP(BaseDetector):
             tuple[Tensor, Tensor]: dets of shape [N, num_det, 5]
                 and class labels of shape [N, num_det].
         """
-        x = self.extract_feat(img)
+        ### SP MODIFIED ###
+        x, _ = self.extract_feat(img)
+        ### END MODIFIED ###
         outs = self.bbox_head(x)
         # get origin input shape to support onnx dynamic shape
 

@@ -16,11 +16,8 @@ from mmdet.models.dense_heads import AnchorHead
 
 # TODO: add loss evaluator for SSD
 @HEADS.register_module()
-class SSDHeadIFF(AnchorHead):
-    """A modified implementation of SSD head. This implementation is modified
-    from SSDHead in mmdetection-2.25.2. Now the SSDHeadIFF expects to receive
-    two input from FPN, feats and sp, rather than only feats.
-
+class SSDHeadSA(AnchorHead):
+    """
     Args:
         num_classes (int): Number of categories excluding the background
             category.
@@ -78,7 +75,10 @@ class SSDHeadIFF(AnchorHead):
                      type='Xavier',
                      layer='Conv2d',
                      distribution='uniform',
-                     bias=0)):
+                     bias=0),
+                 #AAL args
+                 delta_epsilon=0.01
+                 ):
         super(AnchorHead, self).__init__(init_cfg)
         self.num_classes = num_classes
         self.in_channels = in_channels
@@ -113,6 +113,10 @@ class SSDHeadIFF(AnchorHead):
             sampler_cfg = dict(type='PseudoSampler')
             self.sampler = build_sampler(sampler_cfg, context=self)
         self.fp16_enabled = False
+
+        ### SA MODIFIED ###
+        self.delta_epsilon = delta_epsilon
+        ### END MODIFIED ###
 
     @property
     def num_anchors(self):
@@ -195,23 +199,8 @@ class SSDHeadIFF(AnchorHead):
             self.cls_convs.append(nn.Sequential(*cls_layers))
             self.reg_convs.append(nn.Sequential(*reg_layers))
 
-        ##### IFF MODIFIED #####
-        back_convs = []
-        for i in range(len(self.in_channels)):
-            back_convs.append(
-                nn.Conv2d(
-                    self.num_anchors[i] * self.cls_out_channels,
-                    self.in_channels[i],
-                    kernel_size=3,
-                    padding=1))
-        self.back_convs = nn.ModuleList(back_convs)
-        ##### END MODIFIED #####
-
-    def forward(self, feats, sp):
-        """!MODIFIED: This method has been modified from the same method of SSDHead
-        in mmdetection-2.25.2. Now the head expects to receive two inputs from FPN,
-        feats and sp, rather than just one feats.
-        
+    def forward(self, feats):
+        """
         Forward features from the upstream network.
 
         Args:
@@ -227,21 +216,6 @@ class SSDHeadIFF(AnchorHead):
                     levels, each is a 4D-tensor, the channels number is
                     num_anchors * 4.
         """
-        ##### IFF MODIFIED #####
-        new_feats = []
-        feats_fgsm = []
-        for i in range(len(feats)):
-            if i == 0 or i == 1:
-                fgsm = torch.randn(sp.size(), out=None).cuda()
-                feats_fgsm.append(feats[i] + 0.01 * sp * fgsm)
-                #feats_fgsm.append(feats[i])
-            else:
-                feats_fgsm.append(feats[i])
-
-            tmp_cls = F.relu(self.cls_convs[i](feats_fgsm[i]))
-            new_feats.append(F.relu(feats_fgsm[i] + self.back_convs[i](tmp_cls)))
-        ##### END MODIFIED #####
-
         cls_scores = []
         bbox_preds = []
         for feat, reg_conv, cls_conv in zip(feats, self.reg_convs,
@@ -389,7 +363,7 @@ class SSDHeadIFF(AnchorHead):
             num_total_samples=num_total_pos)
         return dict(loss_cls=losses_cls, loss_bbox=losses_bbox)
     
-    def forward_train(self, x, sp, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
+    def forward_train(self, feats, sp_attns, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
         """!MODIFIED: This method has been modified from the same method of BaseDenseHead
         in mmdetection-2.25.2. Now the head expects to receive two inputs from FPN, feats
         and sp, rather than just one feats.
@@ -413,10 +387,19 @@ class SSDHeadIFF(AnchorHead):
                 losses: (dict[str, Tensor]): A dictionary of loss components.
                 proposal_list (list[Tensor]): Proposals of each image.
         """
-        ##### IFF MODIFIED #####
-        outs = self(x,sp)
-        ##### END MODIFIED #####
+        ### SA MODIFIED ###
+        perturbed_feats = []
+        assert len(feats)==len(sp_attns), "Features number does not match attention tensors number"
+        for i in range(len(feats)):
+            if sp_attns[i] is not None:
+                delta = torch.zeros_like(sp_attns[i])
+                delta.uniform_(-self.delta_epsilon, self.delta_epsilon)
+                perturbed_feats.append(feats[i]+sp_attns[i]*delta)
+            else:
+                perturbed_feats.append(feats[i])
+        ### END MODIFIED ###
 
+        outs = self.forward(perturbed_feats)
         if gt_labels is None:
             loss_inputs = outs + (gt_bboxes, img_metas)
         else:
@@ -477,7 +460,7 @@ class SSDHeadIFF(AnchorHead):
                 The shape of the second tensor in the tuple is ``labels``
                 with shape (n,)
         """
-        outs = self.forward(feats,sp)
+        outs = self.forward(feats)
         results_list = self.get_bboxes(
             *outs, img_metas=img_metas, rescale=rescale)
         return results_list

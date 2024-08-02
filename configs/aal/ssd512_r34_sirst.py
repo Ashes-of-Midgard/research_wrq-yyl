@@ -3,18 +3,14 @@ input_size = 512
 model = dict(
     type='SingleStageDetector',
     backbone=dict(
-        type='SSDR34',
-        init_cfg=dict(type='Pretrained',
-                      checkpoint="torchvision://resnet34"),
-        input_size=input_size,
+        type='ResNet',
         depth=34,
-        num_stages=4,
+        #input_size=input_size,
         out_indices=(2, 3),
-        # out_indices=(3),
         frozen_stages=1,
-        norm_cfg=dict(type='BN', requires_grad=True),
-        style='pytorch',
-        l2_norm_scale=20),
+        #use_sp_attn_indices=(2, 3),
+        init_cfg=dict(type='Pretrained',
+                      checkpoint='torchvision://resnet34')),
     neck=None,
     bbox_head=dict(
         type='SSDHead',
