@@ -365,7 +365,7 @@ class SSDHeadAAL(AnchorHead):
             num_total_samples=num_total_pos)
         return dict(loss_cls=losses_cls, loss_bbox=losses_bbox)
     
-    def forward_train(self, feats, sp_attns, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
+    def forward_train(self, feats, feats_extra, sp_attns, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
         """!MODIFIED: This method has been modified from the same method of BaseDenseHead
         in mmdetection-2.25.2. Now the head expects to receive two inputs from FPN, feats
         and sp, rather than just one feats.
@@ -397,26 +397,21 @@ class SSDHeadAAL(AnchorHead):
         #          of original features would not be destroyed. This computing
         #          graph needs to be used when optimizing the backbone layers.
         ori_feats = feats
-        feats = [torch.clone(ori_feats[i]) for i in range(len(ori_feats))]
-        for i in range(len(feats)):
-            feats[i] = feats[i].detach()
+        ori_feats_extra = feats_extra
+        feats = [torch.clone(ori_feats[i]).detach() for i in range(len(ori_feats))]
+        feats_extra = [torch.clone(ori_feats_extra[i]).detach() for i in range(len(ori_feats_extra))]
         # Phase 2: Initialize adversarial perturbations with uniformly random values
         deltas = []
         for i in range(len(feats)):
-            if sp_attns[i] is not None:
-                adv_delta = torch.zeros_like(feats[i]).to(feats[i].device)
-                adv_delta.uniform_(-self.fgsm_epsilon, self.fgsm_epsilon)
-                adv_delta.requires_grad_()
-                deltas.append(adv_delta)
-            else:
-                deltas.append(None)
+            adv_delta = torch.zeros_like(feats[i]).to(feats[i].device)
+            adv_delta.uniform_(-self.fgsm_epsilon, self.fgsm_epsilon)
+            adv_delta.requires_grad_()
+            deltas.append(adv_delta)
         # Phase 3: Predict on images with initial perturbations
         adv_feats = []
         for i in range(len(feats)):
-            if deltas[i] is not None:
-                adv_feats.append(feats[i]+deltas[i])
-            else:
-                adv_feats.append(feats[i])
+            adv_feats.append(feats[i]+deltas[i])
+        adv_feats.extend(feats_extra)
         adv_outs = self.forward(adv_feats)
         # Phase 4: Calculate loss of initial prediction
         if gt_labels is None:
@@ -432,26 +427,18 @@ class SSDHeadAAL(AnchorHead):
         # Phase 5: Adjust adversarial perturbations by FGSM(Fast Gradient Sign Method)
         loss_sum.backward()
         for i in range(len(deltas)):
-            if deltas[i] is not None:
-                grad = deltas[i].grad.detach()
-                deltas[i].data = deltas[i] + self.fgsm_epsilon * torch.sign(grad)
-                deltas[i] = deltas[i].detach()
+            grad = deltas[i].grad.detach()
+            deltas[i].data = deltas[i] + self.fgsm_epsilon * torch.sign(grad)
+            deltas[i] = deltas[i].detach()
         # Phase 6: Backtracking the spatial attentions of input feats
-        backtrack_masks = []
-        for i in range(len(deltas)):
-            if deltas[i] is not None:
+        backtracked_sp_attns = []
+        for i in range(len(sp_attns)):
+            if sp_attns[i] is not None:
                 max_across_channels, _ = torch.max(deltas[i], dim=1, keepdim=True)
                 back_rate = self.back_rate
                 back_mask = self.mask_top_rate(max_across_channels, back_rate)
-                backtrack_masks.append(back_mask)
-            else:
-                backtrack_masks.append(None)
-        backtracked_sp_attns = []
-        for i in range(len(backtrack_masks)):
-            if backtrack_masks[i] is not None:
-                one = torch.ones_like(backtrack_masks[i])
-                backtrack_sp_attn = (one - 0.05 * backtrack_masks[i]) * sp_attns[i]
-                backtracked_sp_attns.append(backtrack_sp_attn)
+                one = torch.ones_like(back_mask)
+                backtracked_sp_attns.append((one - 0.05 * back_mask) * sp_attns[i])
             else:
                 backtracked_sp_attns.append(None)
         # Phase 7: Add adversarial perturbations to the input feats with guidence of spatial attentions
@@ -460,7 +447,8 @@ class SSDHeadAAL(AnchorHead):
             if backtracked_sp_attns[i] is not None:
                 adv_feats.append(ori_feats[i]+backtracked_sp_attns[i]*deltas[i])
             else:
-                adv_feats.append(ori_feats[i])
+                adv_feats.append(ori_feats[i]+deltas[i])
+        adv_feats.extend(ori_feats_extra)
         ### END MODIFIED ###
 
         outs = self.forward(adv_feats)

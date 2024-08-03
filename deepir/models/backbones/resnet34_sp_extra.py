@@ -80,20 +80,18 @@ class ResNet34SP_ExtraLayers(ResNetSP):
         self.extra_layers = self._make_extra_layers(self.extra_setting[input_size])
 
     def forward(self, x):
-        outs_tuple, sp_attns_tuple = super().forward(x)
+        outs, sp_attns = super().forward(x)
         # The forward of super returns tuple object
         # So they need to be converted to list object
-        outs = [outs_tuple[i] for i in range(len(outs_tuple))]
-        sp_attns = [sp_attns_tuple[i] for i in range(len(sp_attns_tuple))]
         x = outs[-1]
 
+        outs_extra = []
         for i, layer in enumerate(self.extra_layers):
             x = layer(x)
             if i % 2 == 1:
-                outs.append(x)
-                sp_attns.append(None)
+                outs_extra.append(x)
         
-        return tuple(outs), tuple(sp_attns)
+        return outs, tuple(outs_extra), sp_attns
 
     def _make_extra_layers(self, extra_setting):
         outplanes = extra_setting['outplanes']

@@ -41,10 +41,10 @@ class SingleStageDetectorSP(BaseDetector):
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""
         ### SP MODIFIED ###
-        x, sp_attn = self.backbone(img)
+        feats, feats_extra, sp_attn = self.backbone(img)
         if self.with_neck:
-            x, sp_attn = self.neck(x)
-        return x, sp_attn
+            feats, feats_extra, sp_attn = self.neck(feats, feats_extra, sp_attn)
+        return feats, feats_extra, sp_attn
         ### END MODIFIED ###
 
     def forward_dummy(self, img):
@@ -53,9 +53,11 @@ class SingleStageDetectorSP(BaseDetector):
         See `mmdetection/tools/analysis_tools/get_flops.py`
         """
         ### SP MODIFIED ###
-        x, _ = self.extract_feat(img)
+        feats, feats_extra, _ = self.extract_feat(img)
+        feats = list(feats)
+        feats.extend(feats_extra)
         ### END MODIFIED ###
-        outs = self.bbox_head(x)
+        outs = self.bbox_head(feats)
         
         return outs
 
@@ -85,9 +87,16 @@ class SingleStageDetectorSP(BaseDetector):
         """
         super(SingleStageDetectorSP, self).forward_train(img, img_metas)
         ### SP MODIFIED ###
-        x, sp_attn = self.extract_feat(img)
-        losses = self.bbox_head.forward_train(x, sp_attn, img_metas, gt_bboxes,
-                                              gt_labels, gt_bboxes_ignore)
+        feats, feats_extra, sp_attn = self.extract_feat(img)
+        try:
+            losses = self.bbox_head.forward_train(feats, feats_extra, sp_attn, img_metas, gt_bboxes,
+                                                  gt_labels, gt_bboxes_ignore)
+        except:
+            # if the head is SSDHead, use this branch
+            feats = list(feats)
+            feats.extend(feats_extra)
+            losses = self.bbox_head.forward_train(feats, img_metas, gt_bboxes,
+                                                  gt_labels, gt_bboxes_ignore)
         ### SP MODIFIED ###
         return losses
 
@@ -106,10 +115,12 @@ class SingleStageDetectorSP(BaseDetector):
                 corresponds to each class.
         """
         ### SP MODIFIED ###
-        feat, _ = self.extract_feat(img)
+        feats, feats_extra, _ = self.extract_feat(img)
+        feats = list(feats)
+        feats.extend(feats_extra)
         ### END MODIFIED ###
         results_list = self.bbox_head.simple_test(
-            feat, img_metas, rescale=rescale)
+            feats, img_metas, rescale=rescale)
         bbox_results = [
             bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
             for det_bboxes, det_labels in results_list
@@ -139,7 +150,9 @@ class SingleStageDetectorSP(BaseDetector):
             ' does not support test-time augmentation'
 
         ### SP MODIFIED ###
-        feats, _ = self.extract_feats(imgs)
+        feats, feats_extra, _ = self.extract_feat(imgs)
+        feats = list(feats)
+        feats.extend(feats_extra)
         ### END MODIFIED ###
         results_list = self.bbox_head.aug_test(
             feats, img_metas, rescale=rescale)
@@ -161,9 +174,11 @@ class SingleStageDetectorSP(BaseDetector):
                 and class labels of shape [N, num_det].
         """
         ### SP MODIFIED ###
-        x, _ = self.extract_feat(img)
+        feats, feats_extra, _ = self.extract_feat(img)
+        feats = list(feats)
+        feats.extend(feats_extra)
         ### END MODIFIED ###
-        outs = self.bbox_head(x)
+        outs = self.bbox_head(feats)
         # get origin input shape to support onnx dynamic shape
 
         # get shape as tensor

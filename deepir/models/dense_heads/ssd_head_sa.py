@@ -363,7 +363,7 @@ class SSDHeadSA(AnchorHead):
             num_total_samples=num_total_pos)
         return dict(loss_cls=losses_cls, loss_bbox=losses_bbox)
     
-    def forward_train(self, feats, sp_attns, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
+    def forward_train(self, feats, feats_extra, sp_attns, img_metas, gt_bboxes, gt_labels=None, gt_bboxes_ignore=None, proposal_cfg=None, **kwargs):
         """!MODIFIED: This method has been modified from the same method of BaseDenseHead
         in mmdetection-2.25.2. Now the head expects to receive two inputs from FPN, feats
         and sp, rather than just one feats.
@@ -388,18 +388,19 @@ class SSDHeadSA(AnchorHead):
                 proposal_list (list[Tensor]): Proposals of each image.
         """
         ### SA MODIFIED ###
-        perturbed_feats = []
+        adv_feats = []
         assert len(feats)==len(sp_attns), "Features number does not match attention tensors number"
         for i in range(len(feats)):
+            delta = torch.zeros_like(sp_attns[i])
+            delta.uniform_(-self.delta_epsilon, self.delta_epsilon)
             if sp_attns[i] is not None:
-                delta = torch.zeros_like(sp_attns[i])
-                delta.uniform_(-self.delta_epsilon, self.delta_epsilon)
-                perturbed_feats.append(feats[i]+sp_attns[i]*delta)
+                adv_feats.append(feats[i]+sp_attns[i]*delta)
             else:
-                perturbed_feats.append(feats[i])
+                adv_feats.append(feats[i]+delta)
+        adv_feats.extend(feats_extra)
         ### END MODIFIED ###
 
-        outs = self.forward(perturbed_feats)
+        outs = self.forward(adv_feats)
         if gt_labels is None:
             loss_inputs = outs + (gt_bboxes, img_metas)
         else:

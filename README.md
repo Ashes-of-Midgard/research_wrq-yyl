@@ -53,9 +53,14 @@ Selective Attack
 python tools/train_det.py configs/aal/ssd512_r34_sirst_sa.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_sa
 ```
 
-baseline
+Clean
 ```shell
-python tools/train_det.py configs/aal/ssd512_r34_sirst_base.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_base
+python tools/train_det.py configs/aal/ssd512_r34_sirst_clean.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_clean
+```
+
+FGSM
+```shell
+python tools/train_det.py configs/aal/ssd512_r34_sirst_fgsm.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_fgsm
 ```
 
 ### Result
