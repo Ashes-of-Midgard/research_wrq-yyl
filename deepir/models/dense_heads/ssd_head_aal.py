@@ -404,7 +404,7 @@ class SSDHeadAAL(AnchorHead):
         deltas = []
         for i in range(len(feats)):
             adv_delta = torch.zeros_like(feats[i]).to(feats[i].device)
-            adv_delta.uniform_(-self.fgsm_epsilon, self.fgsm_epsilon)
+            #adv_delta.uniform_(-self.fgsm_epsilon, self.fgsm_epsilon)
             adv_delta.requires_grad_()
             deltas.append(adv_delta)
         # Phase 3: Predict on images with initial perturbations
@@ -428,7 +428,7 @@ class SSDHeadAAL(AnchorHead):
         loss_sum.backward()
         for i in range(len(deltas)):
             grad = deltas[i].grad.detach()
-            deltas[i].data = deltas[i] + self.fgsm_epsilon * torch.sign(grad)
+            deltas[i] = deltas[i] + self.fgsm_epsilon * torch.sign(grad)
             deltas[i] = deltas[i].detach()
         # Phase 6: Backtracking the spatial attentions of input feats
         backtracked_sp_attns = []
