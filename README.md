@@ -48,7 +48,7 @@ AAL+FGSM
 python tools/train_det.py configs/aal/ssd512_r34_sirst_aal.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_aal
 ```
 
-Selective Attack
+AAL
 ```shell
 python tools/train_det.py configs/aal/ssd512_r34_sirst_sa.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_sa
 ```
@@ -67,3 +67,7 @@ python tools/train_det.py configs/aal/ssd512_r34_sirst_fgsm.py --gpu-id 0 --work
 
 | Model | mNoCoAP |
 |---|---|
+| Clean | 58.86 |
+| FGSM | 61.30 |
+| AAL+FGSM | 58.33 |
+| AAL | 62.48 |
