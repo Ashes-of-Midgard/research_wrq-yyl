@@ -390,7 +390,7 @@ class SSDHeadAAL(AnchorHead):
                 proposal_list (list[Tensor]): Proposals of each image.
         """
         ### AAL MODIFIED ###
-        assert len(feats)==len(sp_attns), "Features number does not match attention tensors number"
+        assert len(feats)==len(sp_attns), f"Features number {len(feats)} does not match attention tensors number {len(sp_attns)}"
         # Phase 1: Make clones of the original features and detach them from
         #          the computing graph so that when using loss backward to
         #          calculate the gradient of perturbations, the computing graph

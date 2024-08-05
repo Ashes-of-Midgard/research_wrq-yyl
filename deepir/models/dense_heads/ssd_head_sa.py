@@ -389,9 +389,10 @@ class SSDHeadSA(AnchorHead):
         """
         ### SA MODIFIED ###
         adv_feats = []
-        assert len(feats)==len(sp_attns), "Features number does not match attention tensors number"
+        assert len(feats)==len(sp_attns), f"Features number {len(feats)} does not match attention tensors number {len(sp_attns)}"
         for i in range(len(feats)):
             delta = 2 * (torch.randn(sp_attns[i].size()) - 0.5) * self.delta_epsilon
+            delta = delta.to(feats[i].device)
             if sp_attns[i] is not None:
                 adv_feats.append(feats[i]+sp_attns[i]*delta)
             else:

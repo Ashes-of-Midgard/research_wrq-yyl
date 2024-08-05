@@ -7,6 +7,8 @@ from mmdet.core import bbox2result
 from mmdet.models.builder import DETECTORS, build_backbone, build_head, build_neck
 from mmdet.models.detectors.base import BaseDetector
 
+from ..dense_heads import SSDHeadAAL, SSDHeadSA
+
 
 @DETECTORS.register_module()
 class SingleStageDetectorSP(BaseDetector):
@@ -87,11 +89,11 @@ class SingleStageDetectorSP(BaseDetector):
         """
         super(SingleStageDetectorSP, self).forward_train(img, img_metas)
         ### SP MODIFIED ###
-        feats, feats_extra, sp_attn = self.extract_feat(img)
-        try:
-            losses = self.bbox_head.forward_train(feats, feats_extra, sp_attn, img_metas, gt_bboxes,
+        feats, feats_extra, sp_attns = self.extract_feat(img)
+        if type(self.bbox_head) in (SSDHeadSA, SSDHeadAAL):
+            losses = self.bbox_head.forward_train(feats, feats_extra, sp_attns, img_metas, gt_bboxes,
                                                   gt_labels, gt_bboxes_ignore)
-        except:
+        else:
             # if the head is SSDHead, use this branch
             feats = list(feats)
             feats.extend(feats_extra)
