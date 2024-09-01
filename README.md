@@ -45,22 +45,22 @@ git clone https://github.com/YimianDai/open-sirst-v2.git
 ### Train
 AAL+FGSM
 ```shell
-python tools/train_det.py configs/aal/ssd512_r34_sirst_aal.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_aal
+python tools/train_det.py configs/aal/ssd512_r34/ssd512_r34_sirst_aal.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_aal
 ```
 
 AAL
 ```shell
-python tools/train_det.py configs/aal/ssd512_r34_sirst_sa.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_sa
+python tools/train_det.py configs/aal/ssd512_r34/ssd512_r34_sirst_sa.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_sa
 ```
 
 Clean
 ```shell
-python tools/train_det.py configs/aal/ssd512_r34_sirst_clean.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_clean
+python tools/train_det.py configs/aal/ssd512_r34/ssd512_r34_sirst_clean.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_clean
 ```
 
 FGSM
 ```shell
-python tools/train_det.py configs/aal/ssd512_r34_sirst_fgsm.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_fgsm
+python tools/train_det.py configs/aal/ssd512_r34/ssd512_r34_sirst_fgsm.py --gpu-id 0 --work-dir work_dirs/ssd512_r34_sirst_fgsm
 ```
 
 ### Result
