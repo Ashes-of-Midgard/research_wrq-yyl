@@ -6,7 +6,7 @@ from mmdet.models import BACKBONES
 from .resnet_sp import ResNetSP
 
 @BACKBONES.register_module
-class ResNet34SP_ExtraLayers(ResNetSP):
+class ResNetSP_ExtraLayers(ResNetSP):
 
     # Extra layers setting is determined by input size
     extra_setting = {
@@ -25,6 +25,7 @@ class ResNet34SP_ExtraLayers(ResNetSP):
 
     def __init__(self,
                  input_size,
+                 depth,
                  in_channels=3,
                  stem_channels=None,
                  base_channels=64,
@@ -48,8 +49,8 @@ class ResNet34SP_ExtraLayers(ResNetSP):
                  init_cfg=None,
                  use_sp_attn_indices=(0, 1, 2, 3)):
         
-        super(ResNet34SP_ExtraLayers, self).__init__(
-            depth=34,
+        super(ResNetSP_ExtraLayers, self).__init__(
+            depth=depth,
             in_channels=in_channels,
             stem_channels=stem_channels,
             base_channels=base_channels,
