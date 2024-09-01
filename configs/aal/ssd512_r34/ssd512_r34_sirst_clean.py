@@ -9,7 +9,6 @@ model = dict(
         strides=(1, 2, 2, 1),
         out_indices=(2, 3),
         frozen_stages=1,
-        use_sp_attn_indices=tuple([]), # no spatial attention is used
         init_cfg=dict(type='Pretrained',
                       checkpoint='torchvision://resnet34')),
     neck=None,

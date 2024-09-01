@@ -471,6 +471,8 @@ class ResNetSP(BaseModule):
                  init_cfg=None,
                  ### SP MODIFIED ###
                  use_sp_attn_indices=(0, 1, 2, 3),
+                 sp_attn_out_indices=None,
+                 sp_attn_stem_out=False
                  ### END MODIFIED ###
                  ):
         super(ResNetSP, self).__init__(init_cfg)
@@ -523,6 +525,11 @@ class ResNetSP(BaseModule):
         assert max(out_indices) < num_stages
         self.style = style
         self.deep_stem = deep_stem
+        ### SP MODIFIED ###
+        warnings.warn('ResNetSP does not support deep_stem right now!')
+        self.sp_attn_layer_stem = SpatialAttention()
+        self.sp_attn_stem_out = sp_attn_stem_out
+        ### END MODIFIED ###
         self.avg_down = avg_down
         self.frozen_stages = frozen_stages
         self.conv_cfg = conv_cfg
@@ -539,6 +546,10 @@ class ResNetSP(BaseModule):
         self.inplanes = stem_channels
         ### SP MODIFIED ###
         self.use_sp_attn_indices = use_sp_attn_indices
+        if sp_attn_out_indices is not None:
+            self.sp_attn_out_indices = sp_attn_out_indices
+        else:
+            self.sp_attn_out_indices = out_indices
         ### END MODIFIED ###
 
         self._make_stem_layer(in_channels, stem_channels)
@@ -728,6 +739,10 @@ class ResNetSP(BaseModule):
             x = self.stem(x)
         else:
             x = self.conv1(x)
+            ### SP MODIFIED ###
+            sp_attn_stem = self.sp_attn_layer_stem(x)
+            x = x * sp_attn_stem
+            ### END MODIFIED ###
             x = self.norm1(x)
             x = self.relu(x)
         x = self.maxpool(x)
@@ -745,9 +760,12 @@ class ResNetSP(BaseModule):
                 sp_attn = None
             if i in self.out_indices:
                 outs.append(x)
+            if i in self.sp_attn_out_indices:
                 sp_attn_outs.append(sp_attn)
             ### END MODIFIED ###
         ### SP MODIFIED ###
+        if self.sp_attn_stem_out:
+            sp_attn_outs.append(sp_attn_stem)
         return tuple(outs), tuple(sp_attn_outs)
         ### END MODIFIED ###
 

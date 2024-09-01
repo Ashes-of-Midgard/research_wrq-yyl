@@ -47,7 +47,9 @@ class ResNetSP_ExtraLayers(ResNetSP):
                  zero_init_residual=True,
                  pretrained=None,
                  init_cfg=None,
-                 use_sp_attn_indices=(0, 1, 2, 3)):
+                 use_sp_attn_indices=(0, 1, 2, 3),
+                 sp_attn_out_indices=None,
+                 sp_attn_stem_out=False):
         
         super(ResNetSP_ExtraLayers, self).__init__(
             depth=depth,
@@ -72,7 +74,9 @@ class ResNetSP_ExtraLayers(ResNetSP):
             zero_init_residual=zero_init_residual,
             pretrained=pretrained,
             init_cfg=init_cfg,
-            use_sp_attn_indices=use_sp_attn_indices)
+            use_sp_attn_indices=use_sp_attn_indices,
+            sp_attn_out_indices=sp_attn_out_indices,
+            sp_attn_stem_out=sp_attn_stem_out)
         
         assert input_size in (300, 512), f"{input_size} is unsupported input size of images"
         self.input_size = input_size
