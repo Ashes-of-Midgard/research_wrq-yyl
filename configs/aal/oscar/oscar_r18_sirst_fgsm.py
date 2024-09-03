@@ -113,9 +113,9 @@ data = dict(
 ############################### Model Setting ###############################
 norm_cfg = dict(type='BN', requires_grad=True)
 model = dict(
-    type='OSCARNet',
+    type='OSCARNet_FGSM',
     backbone=dict(
-        type='FlexResNet',
+        type='FlexResNetSP',
         depths=backbone_cfg['depths'],
         block=backbone_cfg['block'],
         stem_stride=backbone_cfg['stem_stride'],
@@ -224,7 +224,7 @@ optimizer = dict(
     # constructor='LearningRateDecayOptimizerConstructor',
     # _delete_=True,
     type='AdamW',
-    lr=0.002,
+    lr=2e-4,
     betas=(0.9, 0.999),
     weight_decay=0.05,
     paramwise_cfg={
@@ -244,7 +244,7 @@ lr_config = dict(
     # by_epoch=False
     )
 optimizer_config = dict(type='Fp16OptimizerHook', loss_scale='dynamic')
-runner = dict(type='EpochBasedRunner', max_epochs=12)
+runner = dict(type='EpochBasedRunner', max_epochs=24)
 
 ############################## runtime setting ##############################
 

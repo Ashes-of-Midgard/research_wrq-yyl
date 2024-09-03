@@ -1,7 +1,7 @@
 input_size = 512
 ############### model settings ##################
 model = dict(
-    type='SingleStageDetectorSP',
+    type='SingleStageDetectorFGSM',
     backbone=dict(
         type='ResNetSP_ExtraLayers',
         depth=34,
@@ -9,12 +9,11 @@ model = dict(
         strides=(1, 2, 2, 1),
         out_indices=(2, 3),
         frozen_stages=1,
-        use_sp_attn_indices=tuple(),
         init_cfg=dict(type='Pretrained',
                       checkpoint='torchvision://resnet34')),
     neck=None,
     bbox_head=dict(
-        type='SSDHeadAAL',
+        type='SSDHead',
         in_channels=(256, 512, 512, 256, 256, 256, 256),
         anchor_generator=dict(
             type='SSDAnchorGenerator',
