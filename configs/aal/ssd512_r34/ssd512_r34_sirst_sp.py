@@ -125,7 +125,7 @@ log_config = dict(
     hooks=[
         dict(type='TextLoggerHook'),
     ])
-total_epochs = 24
+total_epochs = 12
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/ssd512_r34_voc'

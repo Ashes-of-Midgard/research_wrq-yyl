@@ -5,3 +5,6 @@ from .oscar_sp import OSCARNet_SP
 from .single_stage_sp import SingleStageDetectorSP
 from .single_stage_aal import SingleStageDetectorAAL
 from .single_stage_fgsm import SingleStageDetectorFGSM
+from .faster_rcnn_aal import FasterRCNN_AAL
+from .faster_rcnn_fgsm import FasterRCNN_FGSM
+from .faster_rcnn_sp import FasterRCNN_SP

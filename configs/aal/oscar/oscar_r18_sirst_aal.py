@@ -245,7 +245,7 @@ lr_config = dict(
     # by_epoch=False
     )
 optimizer_config = dict(type='Fp16OptimizerHook', loss_scale='dynamic')
-runner = dict(type='EpochBasedRunner', max_epochs=24)
+runner = dict(type='EpochBasedRunner', max_epochs=12)
 
 ############################## runtime setting ##############################
 
