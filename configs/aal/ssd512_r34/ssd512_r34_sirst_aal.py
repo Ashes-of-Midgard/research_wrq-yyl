@@ -2,6 +2,8 @@ input_size = 512
 ############### model settings ##################
 model = dict(
     type='SingleStageDetectorAAL',
+    visualization = True,
+    visual_dir = 'work_dirs/ssd512_r34_sirst_aal/visual',
     backbone=dict(
         type='ResNetSP_ExtraLayers',
         depth=34,

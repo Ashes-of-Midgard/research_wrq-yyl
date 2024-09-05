@@ -2,6 +2,7 @@
 import warnings
 import numpy as np
 import torch
+from torch import nn
 from torchvision import transforms
 import mmcv
 from mmcv.runner import auto_fp16
@@ -11,6 +12,8 @@ from mmdet.models.builder import (DETECTORS, build_backbone, build_head,
 from mmdet.models.detectors import BaseDetector
 
 from deepir.models.builder import build_heuristic
+
+from ..utils import mask_top_rate, tensor_to_img, heatmap_over_img, denormalize
 
 @DETECTORS.register_module()
 class OSCARNet_AAL(BaseDetector):
@@ -31,9 +34,15 @@ class OSCARNet_AAL(BaseDetector):
                  test_cfg=None,
                  pretrained=None,
                  init_cfg=None,
-                 #AAL args
+                 ### AAL MODIFIED ###
                  fgsm_epsilon=0.01,
-                 back_rate = 0.01):
+                 back_rate = 0.01,
+                 ### AAL MODIFIED ###
+                 ### VISUAL MODIFIED ###
+                 visualization = False,
+                 visual_dir = None
+                 ### END MODIFIED ###
+                 ):
         super(OSCARNet_AAL, self).__init__(init_cfg)
         if pretrained:
             warnings.warn('DeprecationWarning: pretrained is deprecated, '
@@ -50,6 +59,12 @@ class OSCARNet_AAL(BaseDetector):
         ### AAL MODIFIED ###
         self.fgsm_epsilon = fgsm_epsilon
         self.back_rate = back_rate
+        self.mask_pool_layer = nn.AvgPool2d(kernel_size=15,stride=1,padding=7)
+        ### END MODIFIED ###
+        ### VISUAL MODIFIED ###
+        self.visualization = visualization,
+        self.visual_dir = visual_dir
+        self.forward_count = 1
         ### END MODIFIED ###
 
 ##############################################################################
@@ -136,8 +151,31 @@ class OSCARNet_AAL(BaseDetector):
         back_mask = mask_top_rate(max_across_channels, self.back_rate)
         one = torch.ones_like(back_mask)
         sp_attn_stem_resized = transforms.Resize((img.shape[2],img.shape[3]))(sp_attns[-1])
-        backtracked_sp_attn_stem = (((one - 0.05 * back_mask) * sp_attn_stem_resized).detach())
-        adv_delta = (backtracked_sp_attn_stem * self.fgsm_epsilon * torch.sign(adv_delta_grad)).detach()
+        backtracked_sp_attn_stem = (one - self.mask_pool_layer(back_mask)) * sp_attn_stem_resized
+        adv_delta = (adv_delta + backtracked_sp_attn_stem * self.fgsm_epsilon * torch.sign(adv_delta_grad)).detach()
+
+        ### VISUAL MODIFIED ###
+        if self.visualization and self.forward_count % 500 == 0:
+            adv_delta_grad_img = tensor_to_img((adv_delta_grad[0]-torch.min(adv_delta_grad[0]))/(torch.max(adv_delta_grad[0])-torch.min(adv_delta_grad[0])))
+            back_mask_img = tensor_to_img(back_mask[0])
+            sp_attn_stem_resized_img = tensor_to_img(sp_attn_stem_resized[0])
+            backtracked_sp_attn_stem_img = tensor_to_img(backtracked_sp_attn_stem[0])
+            img_img = tensor_to_img(denormalize(img[0]))
+            heatmap = heatmap_over_img(denormalize(img[0]), sp_attn_stem_resized[0])
+            heatmap_backtracked = heatmap_over_img(denormalize(img[0]), backtracked_sp_attn_stem[0])
+            img_attacked = tensor_to_img((denormalize(img)+adv_delta)[0])
+            adv_delta_img = tensor_to_img(adv_delta[0]/self.fgsm_epsilon)
+            adv_delta_grad_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_adv_delta_grad.png')
+            back_mask_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_back_mask.png')
+            sp_attn_stem_resized_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_sp_attn.png')
+            backtracked_sp_attn_stem_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_back_sp_attn.png')
+            img_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_img.png')
+            heatmap.save(self.visual_dir+'/'+str(self.forward_count//500)+'_heatmap.png')
+            heatmap_backtracked.save(self.visual_dir+'/'+str(self.forward_count//500)+'_heatmap_back.png')
+            img_attacked.save(self.visual_dir+'/'+str(self.forward_count//500)+'_img_attacked.png')
+            adv_delta_img.save(self.visual_dir+'/'+str(self.forward_count//500)+'_adv_delta.png')
+        self.forward_count += 1
+        ### END MODIFIED ###
 
         x, sp_attns = self.extract_feat(img+adv_delta)
         losses = self.bbox_head.forward_train(x, img_metas, gt_bboxes,
@@ -252,25 +290,3 @@ class OSCARNet_AAL(BaseDetector):
         ### END MODIFIED ###
         outs = self.bbox_head(x)
         return outs
-
-def mask_top_rate(data, kept_rate):
-    """
-    Given a batch of samples(in a tensor form) and a rate of kept values,
-    return a mask tensor which has the same shape as the input tensor. And
-    the positions where the input tensor's value is within its topk range
-    determined by the kept rate are set to be 1, others are set to be 0.
-
-    Args:
-        data (Tensor): The input samples
-        kept_rate (float): The kept rate. Of each sample in the batch, how
-            much ratio of the values from top are kept.
-
-    Returns:
-        Tensor: The mask tensor in the same shape as the input tensor.
-    """
-    data_flattened = data.view(data.size(0), -1)
-    values_kept, _ = data_flattened.topk(int(data_flattened.size(1)*kept_rate), dim=1)
-    values_min, _ = torch.min(values_kept, dim=-1)
-    values_min = values_min.unsqueeze(-1).repeat(1, data_flattened.size(-1))
-    mask = torch.ge(data_flattened, values_min).float().view(data.size())
-    return mask

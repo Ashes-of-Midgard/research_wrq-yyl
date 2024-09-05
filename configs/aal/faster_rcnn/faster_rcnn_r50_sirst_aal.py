@@ -102,6 +102,8 @@ data = dict(
 ############################## model settings ##############################
 model = dict(
     type='FasterRCNN_AAL',
+    visualization = True,
+    visual_dir = 'work_dirs/faster_rcnn_r50_sirst_aal/visual',
     backbone=dict(
         type='ResNetSP',
         depth=50,

@@ -114,6 +114,8 @@ data = dict(
 norm_cfg = dict(type='BN', requires_grad=True)
 model = dict(
     type='OSCARNet_AAL',
+    visualization = True,
+    visual_dir = 'work_dirs/oscar_r18_sirst_aal/visual',
     backbone=dict(
         type='FlexResNetSP',
         depths=backbone_cfg['depths'],
