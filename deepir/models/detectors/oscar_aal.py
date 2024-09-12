@@ -18,7 +18,6 @@ from ..utils import mask_top_rate, tensor_to_img, heatmap_over_img, denormalize
 @DETECTORS.register_module()
 class OSCARNet_AAL(BaseDetector):
     """Base class for single-stage detectors.
-
     Single-stage detectors directly and densely predict bounding boxes on the
     output features of the backbone+neck.
     """
@@ -37,7 +36,7 @@ class OSCARNet_AAL(BaseDetector):
                  ### AAL MODIFIED ###
                  fgsm_epsilon=0.01,
                  back_rate = 0.01,
-                 ### AAL MODIFIED ###
+                 ### END MODIFIED ###
                  ### VISUAL MODIFIED ###
                  visualization = False,
                  visual_dir = None
@@ -59,7 +58,6 @@ class OSCARNet_AAL(BaseDetector):
         ### AAL MODIFIED ###
         self.fgsm_epsilon = fgsm_epsilon
         self.back_rate = back_rate
-        self.mask_pool_layer = nn.AvgPool2d(kernel_size=15,stride=1,padding=7)
         ### END MODIFIED ###
         ### VISUAL MODIFIED ###
         self.visualization = visualization,
@@ -75,7 +73,6 @@ class OSCARNet_AAL(BaseDetector):
     def forward(self, img, img_metas, return_loss=True, **kwargs):
         """Calls either :func:`forward_train` or :func:`forward_test` depending
         on whether ``return_loss`` is ``True``.
-
         Note this setting will change the expected inputs. When
         ``return_loss=True``, img and img_meta are single-nested (i.e. Tensor
         and List[dict]), and when ``resturn_loss=False``, img and img_meta
@@ -124,7 +121,6 @@ class OSCARNet_AAL(BaseDetector):
             gt_labels (list[Tensor]): Class indices corresponding to each box
             gt_bboxes_ignore (None | list[Tensor]): Specify which bounding
                 boxes can be ignored when computing the loss.
-
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
@@ -133,7 +129,7 @@ class OSCARNet_AAL(BaseDetector):
             img_meta['batch_input_shape'] = batch_input_shape
         ### AAL MODIFIED ###
         adv_delta = torch.zeros_like(img).to(img.device).requires_grad_()
-        
+
         x, sp_attns = self.extract_feat(img+adv_delta)
         losses = self.bbox_head.forward_train(x, img_metas, gt_bboxes,
                                               gt_labels, gt_noco_map,
@@ -144,15 +140,15 @@ class OSCARNet_AAL(BaseDetector):
         loss_sum += losses['loss_refine_cls']
         loss_sum += losses['loss_refine_bbox']
         loss_sum += losses['loss_refine_noco']
-        
+
         loss_sum.backward()
         adv_delta_grad = adv_delta.grad
         max_across_channels, _ = torch.max(adv_delta_grad, dim=1, keepdim=True)
         back_mask = mask_top_rate(max_across_channels, self.back_rate)
         one = torch.ones_like(back_mask)
         sp_attn_stem_resized = transforms.Resize((img.shape[2],img.shape[3]))(sp_attns[-1])
-        backtracked_sp_attn_stem = (one - self.mask_pool_layer(back_mask)) * sp_attn_stem_resized
-        adv_delta = (adv_delta + backtracked_sp_attn_stem * self.fgsm_epsilon * torch.sign(adv_delta_grad)).detach()
+        backtracked_sp_attn_stem = (((one - 0.05 * back_mask) * sp_attn_stem_resized).detach())
+        adv_delta = (backtracked_sp_attn_stem * self.fgsm_epsilon * torch.sign(adv_delta_grad)).detach()
 
         ### VISUAL MODIFIED ###
         if self.visualization and self.forward_count % 500 == 0:
@@ -190,13 +186,11 @@ class OSCARNet_AAL(BaseDetector):
 
     def simple_test(self, img, img_metas, rescale=False):
         """Test function without test-time augmentation.
-
         Args:
             img (torch.Tensor): Images with shape (N, C, H, W).
             img_metas (list[dict]): List of image information.
             rescale (bool, optional): Whether to rescale the results.
                 Defaults to False.
-
         Returns:
             list[list[np.ndarray]]: BBox results of each image and classes.
                 The outer list corresponds to each image. The inner list
@@ -219,7 +213,6 @@ class OSCARNet_AAL(BaseDetector):
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test function with test time augmentation.
-
         Args:
             imgs (list[Tensor]): the outer list indicates test-time
                 augmentations and inner Tensor should have a shape NxCxHxW,
@@ -229,7 +222,6 @@ class OSCARNet_AAL(BaseDetector):
                 images in a batch. each dict has image information.
             rescale (bool, optional): Whether to rescale the results.
                 Defaults to False.
-
         Returns:
             list[list[np.ndarray]]: BBox results of each image and classes.
                 The outer list corresponds to each image. The inner list
@@ -250,11 +242,9 @@ class OSCARNet_AAL(BaseDetector):
 
     def onnx_export(self, img, img_metas, with_nms=True):
         """Test function without test time augmentation.
-
         Args:
             img (torch.Tensor): input images.
             img_metas (list[dict]): List of image information.
-
         Returns:
             tuple[Tensor, Tensor]: dets of shape [N, num_det, 5]
                 and class labels of shape [N, num_det].
@@ -282,7 +272,6 @@ class OSCARNet_AAL(BaseDetector):
 
     def forward_dummy(self, img):
         """Used for computing network flops.
-
         See `mmdetection/tools/analysis_tools/get_flops.py`
         """
         ### AAL MODIFIED ###
